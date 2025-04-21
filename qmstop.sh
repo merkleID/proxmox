@@ -1,19 +1,22 @@
-# Esegui il comando e salva l'output in una variabile
-output=$(qm list | grep -v VMID | awk -F " " '{print $1}')
+#!/bin/bash
 
-# Dichiara un array in Bash
-declare -a my_array
+# Script per spegnere tutte le VM su Proxmox
 
-# Itera attraverso l'output e assegna ogni elemento all'array
-for item in $output
-do
-  my_array+=("$item")
+echo "Elenco delle VM attive:"
+qm list
+
+# Ottieni l'elenco degli ID VM (colonna 1, saltando l'intestazione)
+VM_IDS=$(qm list | awk 'NR>1 {print $1}')
+
+for VMID in $VM_IDS; do
+    echo "Spegnimento della VM ID $VMID..."
+    qm shutdown $VMID
+    # Attendere lo spegnimento prima di passare alla successiva (facoltativo)
+    while qm status $VMID | grep -q "status: running"; do
+        echo "In attesa che la VM $VMID si spenga..."
+        sleep 5
+    done
+    echo "VM $VMID spenta."
 done
 
-# Ora l'array "my_array" contiene gli elementi desiderati
-# Puoi accedere agli elementi dell'array in questo modo:
-echo "Elementi dell'array:"
-for item in "${my_array[@]}"
-do
-  qm shutdown $item
-done
+echo "Tutte le VM sono state spente."
